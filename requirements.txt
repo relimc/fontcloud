@@ -1,0 +1,11 @@
+fonttools
+pillow
+pymysql
+flask
+jieba
+wordcloud
+matplotlib
+numpy
+opencv-python
+setuptools
+python-dotenv

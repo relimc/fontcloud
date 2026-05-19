@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字体详情</title>
+    <link rel="stylesheet" href="/static/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container detail-container">
+        <a href="javascript:void(0);" class="home-fixed" onclick="history.back();" title="返回首页">
+            <i class="fas fa-home"></i>
+        </a>
+        <div id="detailContent">
+            <div class="loading"><i class="fas fa-spinner fa-pulse"></i> 加载中...</div>
+        </div>
+    </div>
+
+    <!-- 编辑字体模态框（与首页一致） -->
+    <div id="editFontModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑字体信息</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="editFontForm">
+                <input type="hidden" id="editFontName">
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">✏️ 自定义字体名</div>
+                        <input type="text" id="customFontName" placeholder="例如：思源黑体修改版">
+                    </div>
+                </div>
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">🔗 下载链接</div>
+                        <input type="url" id="customDownloadLink" placeholder="https://example.com/font.zip">
+                    </div>
+                </div>
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">⚖️ 字重</div>
+                        <input type="text" id="customFontWeight" placeholder="例如：Bold, Regular, Light">
+                    </div>
+                </div>
+                <!-- 许可证选择（新增） -->
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">📜 许可证 (手动覆盖)</div>
+                        <select id="customLicenseSelect" class="license-select">
+                            <option value="">-- 自动检测 --</option>
+                            <option value="OFL">OFL</option>
+                            <option value="GPL">GPL</option>
+                            <option value="MIT">MIT</option>
+                            <option value="Apache">Apache</option>
+                            <option value="BSD">BSD</option>
+                            <option value="Free">其他开源/免费声明</option>
+                            <option value="unknown">商用需授权</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">保存</button>
+                    <button type="button" class="cancel-btn" id="resetEditBtn">重置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content" style="width: 350px;">
+            <div class="modal-header">
+                <h2>登录</h2>
+                <span class="close-login">&times;</span>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="submit-btn">登录</button>
+                <div id="loginError" style="color:red; margin-top:10px;"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 字体名称从后端注入（通过模板变量）
+        const fontName = {{ font_name | tojson }};
+    </script>
+    <script src="/static/script.js"></script>
+</body>
+</html>

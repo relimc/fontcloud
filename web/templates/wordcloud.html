@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>词云工坊 - 字体工具</title>
+    <link rel="stylesheet" href="/static/wordcloud.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="app-container">
+    <!-- 左侧配置区 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-area">
+                <h1>✨ 词云工坊</h1>
+                <p>五种模式 · 自由选择 · 随心创作</p>
+            </div>
+        </div>
+
+        <form id="wcForm" enctype="multipart/form-data">
+            <!-- 模式选项卡 -->
+            <div class="mode-tabs">
+                <button type="button" class="mode-tab active" data-mode="random">🎲 随机</button>
+                <button type="button" class="mode-tab" data-mode="shape">🔷 形状</button>
+                <button type="button" class="mode-tab" data-mode="icon">🎨 图标</button>
+                <button type="button" class="mode-tab" data-mode="image">🖼️ 图片</button>
+                <button type="button" class="mode-tab" data-mode="character">🔤 字符</button>
+                <input type="hidden" id="mode" name="mode" value="random">
+            </div>
+            <div class="config-section">
+                <!-- 自定义字体 -->
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">🖋️ 自定义字体 (可选)</div>
+                        <input type="file" id="fontFile" name="font_file" accept=".ttf,.otf" class="file-input">
+                    </div>
+                </div>
+
+                <!-- 文本内容 -->
+                <div class="form-block">
+                    <div class="textarea-wrapper">
+                        <label class="textarea-label">📝 文本内容</label>
+                        <textarea id="text" name="text" rows="5">请输入您要用于生成词云的文本内容</textarea>
+                    </div>
+                </div>
+
+                <!-- 形状面板 -->
+                <div id="shapePanel" class="mode-panel" style="display: none;">
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🔷 选择形状</div>
+                            <select id="shapeName" name="shape_name">
+                                <option>圆形</option><option>正方形</option><option>三角形</option>
+                                <option>心形</option><option>五角星</option><option>菱形</option>
+                                <option>五边形</option><option>六边形</option><option>椭圆形</option><option>环形</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图标面板 -->
+                <div id="iconPanel" class="mode-panel" style="display: none;">
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🎨 选择预设图标</div>
+                            <div class="preset-images-list" id="iconPresetsList"></div>
+                            <input type="hidden" id="iconName" name="icon_name">
+                        </div>
+                    </div>
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">📤 上传自定义图标 (可选)</div>
+                            <input type="file" id="customIconImage" name="custom_icon_image" accept="image/png,image/jpeg,image/jpg,image/bmp" class="file-input">
+                            <div id="customIconPreview" style="margin-top: 10px; display: none;">
+                                <img id="customIconPreviewImg" src="" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; border-radius: 4px;">
+                            </div>
+                            <div class="helper-text">建议使用白底黑色实心图案</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图片面板 -->
+                <div id="imagePanel" class="mode-panel" style="display: none;">
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🖼️ 选择预设图片</div>
+                            <div class="preset-images-list" id="presetImagesList"></div>
+                            <input type="hidden" id="presetImage" name="preset_image">
+                        </div>
+                    </div>
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">📤 上传自定义图片 (可选)</div>
+                            <input type="file" id="customImage" name="custom_image" accept="image/png,image/jpeg,image/jpg,image/bmp" class="file-input">
+                            <div id="customImagePreview" style="margin-top: 10px; display: none;">
+                                <img id="customPreviewImg" src="" style="max-width: 100px; max-height: 100px; border: 1px solid #ccc; border-radius: 4px;">
+                            </div>
+                            <div class="helper-text">建议使用白底黑色实心图案</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 字符面板 -->
+                <div id="characterPanel" class="mode-panel" style="display: none;">
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🔤 字符形状</div>
+                            <input type="text" id="customChar" name="custom_char" maxlength="1" placeholder="请输入用于作为蒙版的字符">
+                        </div>
+                    </div>
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">📌 快速选择</div>
+                            <div class="preset-group" id="charPresets"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 生成按钮 -->
+                <div class="form-block submit-block">
+                    <button type="submit" class="generate-btn"><i class="fas fa-magic"></i> 立即生成词云</button>
+                </div>
+            </div>
+        </form>
+
+        <div class="sidebar-footer">
+            <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> 返回字体列表</a>
+        </div>
+    </div>
+
+    <!-- 右侧预览区 -->
+    <div class="preview-area">
+        <div class="preview-card" id="previewCard">
+            <div class="loading-state">
+                <i class="fas fa-cloud-upload-alt fa-3x" style="color: #cbd5e0;"></i>
+                <p>配置参数后，点击「立即生成词云」<br>预览效果将显示在此处</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/wordcloud.js"></script>
+</body>
+</html>
