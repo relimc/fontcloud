@@ -27,5 +27,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/font-tool:latest
-            ${{ secrets.DOCKER_USERNAME }}/font-tool:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/fontcloud:latest
+            ${{ secrets.DOCKER_USERNAME }}/fontcloud:${{ github.sha }}
