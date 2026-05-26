@@ -5,6 +5,8 @@ let totalPages = 1;
 let currentEditFontName = '';
 let currentDetailFontName = '';
 let currentDetailCustomInfo = {};
+let currentDetailFontUrl = null;
+let isCurrentFontDownloadable = false;
 
 // 登录模态框元素
 const loginModal = document.getElementById('loginModal');
@@ -74,28 +76,39 @@ function renderCards(fonts) {
     let html = '';
     for (const font of fonts) {
         const customInfo = font.custom_info || {};
-        const baseName = basenameWithoutExt(font.font_name);
-        // 显示名称：优先自定义，否则用元数据中的族名，最后用文件名中的中文部分
-        let displayName = customInfo.custom_font_name || font.display_name;
-        if (!displayName) {
-            displayName = baseName.includes('／') ? baseName.split('／')[1] : baseName;
+        let displayName = customInfo.custom_font_name || font.display_name || font.font_name;
+        displayName = displayName.replace(/\.[^/.]+$/, '');
+        let weight = font.font_weight;
+        if (weight && weight.toLowerCase() !== 'regular') {
+            const nameLower = displayName.toLowerCase().replace(/\s/g, '');
+            const weightLower = weight.toLowerCase().replace(/\s/g, '');
+            if (!nameLower.includes(weightLower)) {
+                displayName = `${displayName} ${weight}`;
+            }
         }
-        displayName = displayName.replace(/／/g, '|');
+        const baseName = font.font_name.replace(/\.[^/.]+$/, '');
         const previewUrl = `/preview/${baseName}_preview.png`;
+        const smallTitleUrl = `/preview/${baseName}_title_small.png`;
         const ext = font.font_name.split('.').pop().toUpperCase();
         const licenseClass = font.final_license;
         const licenseText = licenseClass ? licenseClass.toUpperCase() : 'UNKNOWN';
 
+        // 确保 font_name 存在，用于 data-font-name 属性
+        const fontNameAttr = font.font_name || '';
+
         html += `
-            <div class="card" data-font-name="${escapeHtml(font.font_name)}"
+            <div class="card" data-font-name="${escapeHtml(fontNameAttr)}"
                  data-custom-info='${JSON.stringify(customInfo)}'
                  data-original-name="${escapeHtml(displayName)}"
                  data-license="${escapeHtml(font.commercial_license)}">
                 <div class="card-preview">
-                    <img src="${previewUrl}" alt="${displayName}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Crect width=\'100\' height=\'100\' fill=\'%23e2e8f0\'/%3E%3Ctext x=\'50\' y=\'55\' text-anchor=\'middle\' fill=\'%23718096\' font-size=\'12\'%3E无预览图%3C/text%3E%3C/svg%3E'">
+                    <img src="${previewUrl}" alt="${displayName}" onerror="this.src='data:image/svg+xml,...'">
                 </div>
                 <div class="card-info">
-                    <div class="card-title" title="${displayName}">${escapeHtml(displayName)}</div>
+                    <div class="card-title">
+                        <span class="title-text">${escapeHtml(displayName)}</span>
+                        <img class="title-img" src="${smallTitleUrl}" alt="${displayName}">
+                    </div>
                     <div class="card-meta">
                         <span>📄 ${ext}</span>
                         <span class="license ${licenseClass}">${licenseText}</span>
@@ -106,20 +119,22 @@ function renderCards(fonts) {
     }
     grid.innerHTML = html;
 
-    // 为每个卡片绑定单击跳转和双击编辑
+    // 绑定事件（单击跳转，双击编辑）
     let clickTimer = null;
     document.querySelectorAll('.card').forEach(card => {
-        // 单击跳转（延迟执行，避免双击时误跳转）
         card.addEventListener('click', (e) => {
+            // 阻止如果点击的目标是 .title-img 或 .title-text？但我们需要整个卡片跳转，所以保留
             if (clickTimer) return;
             clickTimer = setTimeout(() => {
                 const fontName = card.dataset.fontName;
-                window.location.href = `/detail/${encodeURIComponent(fontName)}`;
+                if (fontName) {
+                    window.location.href = `/detail/${encodeURIComponent(fontName)}`;
+                } else {
+                    console.error('fontName is undefined', card);
+                }
                 clickTimer = null;
             }, 200);
         });
-
-        // 双击字体名编辑（取消单击跳转）
         const titleElem = card.querySelector('.card-title');
         if (titleElem) {
             titleElem.addEventListener('click', (e) => {
@@ -129,9 +144,12 @@ function renderCards(fonts) {
                     clickTimer = null;
                 }
                 const fontName = card.dataset.fontName;
+                if (!fontName) {
+                    console.error('fontName is undefined for edit');
+                    return;
+                }
                 const customInfo = JSON.parse(card.dataset.customInfo || '{}');
                 const license = card.dataset.license;
-                checkAuthAndExecute(() => openEditModal(fontName, customInfo, license));
                 openEditModal(fontName, customInfo, license);
             });
         }
@@ -236,17 +254,19 @@ function renderPagination() {
 
 function setupSearch() {
     const input = document.getElementById('searchInput');
-    const btn = document.getElementById('searchBtn');
-    if (!input || !btn) return;
+    const icon = document.getElementById('searchIcon');
+    if (!input) return;
     const search = () => {
         currentSearch = input.value.trim();
         currentPage = 1;
         loadFonts();
     };
-    btn.addEventListener('click', search);
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') search();
     });
+    if (icon) {
+        icon.addEventListener('click', search);
+    }
 }
 
 // ==================== 详情页逻辑 ====================
@@ -343,6 +363,10 @@ function renderDetail(data) {
     // 标题：优先自定义名称，否则使用数据库名去除扩展名
     let titleDisplay = data.custom_info?.custom_font_name || basenameWithoutExt(data.font_name);
     titleDisplay = titleDisplay.replace(/／/g, '|');
+    const officialLink = data.custom_info?.official_link || '';
+    const officialHtml = officialLink
+        ? `<a href="${officialLink}" target="_blank" class="detail-meta-item">🏠 官方链接</a>`
+        : '';
 
     const html = `
         <div class="detail-card">
@@ -355,6 +379,7 @@ function renderDetail(data) {
                     <div class="detail-meta-item">🌐 支持语言: ${data.supported_languages || '无'}</div>
                     <div class="detail-meta-item">⚖️ 字重: ${data.font_weight}</div>
                     ${linkHtml}
+                    ${officialHtml}
                 </div>
                 <div class="name-records">
                     <h3>📋 字体元数据</h3>
@@ -406,6 +431,86 @@ function renderDetail(data) {
             checkAuthAndExecute(() => openEditModal(currentDetailFontName, currentDetailCustomInfo, data.final_license));
         });
     }
+    currentDetailFontUrl = data.font_file_url;
+    initFontPreviewForDetail(data.font_file_url, data.is_downloadable);
+}
+
+function updatePreviewButtonVisibility() {
+    const previewBtn = document.getElementById('detailPreviewBtn');
+    if (previewBtn) {
+        previewBtn.style.display = isCurrentFontDownloadable ? 'flex' : 'none';
+    }
+}
+
+function initFontPreviewForDetail(fontFileUrl, isDownloadable) {
+    currentDetailFontUrl = fontFileUrl;
+    isCurrentFontDownloadable = isDownloadable;
+    updatePreviewButtonVisibility();
+
+    const previewModal = document.getElementById('fontPreviewModal');
+    if (!previewModal) return;
+
+    const previewText = document.getElementById('previewText');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    const previewTextElement = document.getElementById('previewTextElement');
+    const fontFileInput = document.getElementById('previewFontFile');
+    if (fontFileInput) fontFileInput.closest('.form-block').style.display = 'none'; // 隐藏上传
+
+    async function loadPreviewFont() {
+        if (!currentDetailFontUrl) {
+            previewTextElement.innerText = '无法获取字体文件';
+            return;
+        }
+        try {
+            const response = await fetch(currentDetailFontUrl);
+            if (!response.ok) {
+                if (response.status === 403) {
+                    previewTextElement.innerText = '该字体为非开源字体，无法预览';
+                    previewTextElement.style.fontFamily = 'monospace';
+                    return;
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const fontBlob = await response.blob();
+            const fontData = await fontBlob.arrayBuffer();
+            const fontFace = new FontFace('previewFontDetail', fontData);
+            await fontFace.load();
+            document.fonts.add(fontFace);
+            previewTextElement.style.fontFamily = 'previewFontDetail';
+            previewTextElement.innerText = previewText.value;
+        } catch (err) {
+            console.error('字体加载失败', err);
+            previewTextElement.innerText = '字体加载失败，无法预览';
+            previewTextElement.style.fontFamily = 'monospace';
+        }
+    }
+
+    // 绑定事件（确保只绑定一次）
+    if (!window.previewListenersAdded) {
+        window.previewListenersAdded = true;
+        const previewBtn = document.getElementById('detailPreviewBtn');
+        if (previewBtn) {
+            previewBtn.onclick = () => {
+                previewModal.style.display = 'flex';
+                loadPreviewFont();
+            };
+        }
+        if (previewText) previewText.oninput = () => { previewTextElement.innerText = previewText.value; };
+        if (fontSizeSlider) fontSizeSlider.oninput = () => {
+            const val = fontSizeSlider.value;
+            fontSizeValue.innerText = val;
+            previewTextElement.style.fontSize = val + 'px';
+        };
+        const closeModal = () => previewModal.style.display = 'none';
+        const closePreview = document.querySelector('.close-preview');
+        const closePreviewBtn = document.getElementById('closePreviewModalBtn');
+        if (closePreview) closePreview.onclick = closeModal;
+        if (closePreviewBtn) closePreviewBtn.onclick = closeModal;
+        window.onclick = (event) => {
+            if (event.target === previewModal) closeModal();
+        };
+    }
 }
 
 async function refreshDetailIfNeeded(fontName) {
@@ -441,6 +546,7 @@ async function openEditModal(fontName, customInfo, currentLicense) {
     document.getElementById('customFontName').value = customInfo.custom_font_name || '';
     document.getElementById('customDownloadLink').value = customInfo.custom_download_link || '';
     document.getElementById('customFontWeight').value = customInfo.custom_font_weight || '';
+    document.getElementById('customOfficialLink').value = customInfo.official_link || '';
     const licenseSelect = document.getElementById('customLicenseSelect');
     if (licenseSelect) licenseSelect.value = customInfo.custom_license || '';
     document.getElementById('editFontModal').style.display = 'flex';
@@ -472,6 +578,7 @@ if (editForm) {
         const fontWeight = document.getElementById('customFontWeight').value.trim();
         const customLicenseSelect = document.getElementById('customLicenseSelect');
         const customLicense = customLicenseSelect ? customLicenseSelect.value : '';
+        const officialLink = document.getElementById('customOfficialLink').value.trim();
 
         if (!customName && !downloadLink && !fontWeight && !customLicense) {
             alert('请至少填写一项');
@@ -482,7 +589,8 @@ if (editForm) {
             custom_font_name: customName,
             custom_download_link: downloadLink,
             custom_font_weight: fontWeight,
-            custom_license: customLicense
+            custom_license: customLicense,
+            official_link: officialLink
         };
         if (customLicense !== '') {
             data.commercial_license = customLicense;
@@ -594,10 +702,10 @@ if (uploadClose){
         });
     });
 }
-if (uploadClose) uploadClose.onclick = () => { if (uploadModal) uploadModal.style.display = 'none'; };
+if (uploadClose) uploadClose.onclick = () => { if (uploadModal) closeUploadModal(); };
 if (uploadModal) {
     window.onclick = (event) => {
-        if (event.target === uploadModal) uploadModal.style.display = 'none';
+        if (event.target === uploadModal) closeUploadModal();
     };
 }
 if (uploadTypeSelect) {
@@ -714,6 +822,20 @@ if (wordcloudBtn) {
     });
 }
 
+function resetUploadModal() {
+    const singleFile = document.getElementById('singleFile');
+    const batchFiles = document.getElementById('batchFiles');
+    const uploadResult = document.getElementById('uploadResult');
+    if (singleFile) singleFile.value = '';
+    if (batchFiles) batchFiles.value = '';
+    if (uploadResult) uploadResult.innerHTML = '';
+}
+
+function closeUploadModal() {
+    uploadModal.style.display = 'none';
+    resetUploadModal();
+}
+
 // ==================== 页面初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
     // 首页
@@ -725,8 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelUploadBtn = document.getElementById('cancelUploadBtn');
     if (cancelUploadBtn) {
         cancelUploadBtn.addEventListener('click', () => {
-            const modal = document.getElementById('uploadModal');
-            if (modal) modal.style.display = 'none';
+            closeUploadModal()
         });
     }
 
@@ -751,4 +872,121 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // 加载预设蒙版
     loadMaskPresets();
+
+    // 字体预览器逻辑
+    const fontPreviewBtn = document.getElementById('fontPreviewBtn');
+    const previewModal = document.getElementById('fontPreviewModal');
+    const closePreview = document.querySelector('.close-preview');
+    const closePreviewBtn = document.getElementById('closePreviewModalBtn');
+    const fontFileInput = document.getElementById('previewFontFile');
+    const previewText = document.getElementById('previewText');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    const previewTextElement = document.getElementById('previewTextElement');
+    let currentFontFace = null;
+
+    // 打开模态框
+    if (fontPreviewBtn) {
+        fontPreviewBtn.addEventListener('click', () => {
+            previewModal.style.display = 'flex';
+            // 清空之前的字体预览
+            if (currentFontFace) {
+                document.fonts.delete(currentFontFace);
+                currentFontFace = null;
+            }
+            previewTextElement.style.fontFamily = '';
+            previewTextElement.style.fontSize = fontSizeSlider.value + 'px';
+            previewTextElement.innerText = previewText.value;
+        });
+
+        // 上传字体文件并预览
+        fontFileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            const fileName = file.name;
+            const ext = fileName.split('.').pop().toLowerCase();
+            if (!['ttf', 'otf', 'woff2'].includes(ext)) {
+                alert('请选择 .ttf, .otf 或 .woff2 格式的字体文件');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fontData = e.target.result;
+                // 移除旧的字体
+                if (currentFontFace) {
+                    document.fonts.delete(currentFontFace);
+                }
+                // 创建新字体
+                const fontFace = new FontFace('previewFont', fontData);
+                fontFace.load().then(loadedFont => {
+                    document.fonts.add(loadedFont);
+                    currentFontFace = loadedFont;
+                    previewTextElement.style.fontFamily = 'previewFont';
+                }).catch(err => {
+                    console.error('字体加载失败', err);
+                    alert('字体加载失败，请检查文件是否损坏');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // 预览文本变化
+        previewText.addEventListener('input', () => {
+            previewTextElement.innerText = previewText.value;
+        });
+
+        // 字体大小调整
+        fontSizeSlider.addEventListener('input', () => {
+            const val = fontSizeSlider.value;
+            fontSizeValue.innerText = val;
+            previewTextElement.style.fontSize = val + 'px';
+        });
+
+        // 初始化预览
+        previewTextElement.innerText = previewText.value;
+        previewTextElement.style.fontSize = fontSizeSlider.value + 'px';
+
+        function resetPreviewModal() {
+            const fontFile = document.getElementById('previewFontFile');
+            const previewText = document.getElementById('previewText');
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            const previewTextElement = document.getElementById('previewTextElement');
+            if (fontFile) fontFile.value = '';
+            if (previewText) previewText.value = '字体预览器 0123 abc';
+            if (fontSizeSlider) fontSizeSlider.value = '32';
+            if (previewTextElement) {
+                previewTextElement.innerText = '字体预览器 0123 abc';
+                previewTextElement.style.fontSize = '32px';
+                previewTextElement.style.fontFamily = '';
+            }
+            // 移除动态加载的字体
+            if (window.currentFontFace) {
+                document.fonts.delete(window.currentFontFace);
+                window.currentFontFace = null;
+            }
+            // 更新滑块旁边的数值显示
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            if (fontSizeValue) fontSizeValue.innerText = '32';
+        }
+
+        // 关闭预览模态框
+        function closePreviewModal() {
+            previewModal.style.display = 'none';
+            resetPreviewModal();
+        }
+
+        if (closePreview) closePreview.addEventListener('click', closePreviewModal);
+        if (closePreviewBtn) closePreviewBtn.addEventListener('click', closePreviewModal);
+        window.addEventListener('click', (event) => {
+            if (event.target === previewModal) closePreviewModal();
+        });
+
+    }
+
+
+
+
 });
+
+
+

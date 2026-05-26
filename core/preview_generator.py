@@ -519,6 +519,33 @@ class WordCloudGenerator:
                 self.generate_with_shape(shape_func=shape_func, shape_name=shape_name, **kwargs)
 
 
+def generate_font_title_preview(font_path: str, output_path: str, display_name: str):
+    from PIL import Image, ImageDraw, ImageFont
+
+    font_size = 18
+    try:
+        pil_font = ImageFont.truetype(font_path, font_size)
+    except:
+        pil_font = ImageFont.load_default()
+
+    # 测量文字尺寸
+    temp_img = Image.new('RGBA', (1, 1))
+    draw = ImageDraw.Draw(temp_img)
+    bbox = draw.textbbox((0, 0), display_name, font=pil_font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+    x_offset = -bbox[0]
+    y_offset = -bbox[1]
+
+    # 创建透明背景
+    img = Image.new('RGBA', (text_width, text_height), (0,0,0,0))
+    draw = ImageDraw.Draw(img)
+    draw.text((x_offset, y_offset), display_name, fill=(0,0,0,255), font=pil_font)
+
+    img.save(output_path)
+    print(f"小尺寸字体名预览图已生成: {output_path}")
+
+
 # ========== 对外预览生成函数 ==========
 def generate_preview(font_path: str, output_path: str, font_name: str):
     """

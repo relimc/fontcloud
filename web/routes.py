@@ -103,10 +103,11 @@ def register_routes(app):
                 fonts = []
                 for row in rows:
                     metadata = json.loads(row['metadata']) if row['metadata'] else {}
+                    custom_info = json.loads(row['custom_info']) if row['custom_info'] else {}
                     display_name = row['font_name']
                     try:
                         if 'win' in metadata and 'enc_id_unicode_bmp' in metadata['win']:
-                            for lang in ['cn','tw','en']:
+                            for lang in ['cn', 'tw', 'en']:
                                 if lang in metadata['win']['enc_id_unicode_bmp']:
                                     name_data = metadata['win']['enc_id_unicode_bmp'][lang]
                                     if 'font_family_name' in name_data:
@@ -115,18 +116,40 @@ def register_routes(app):
                     except:
                         pass
                     preview_path = f"/preview/{row['font_name']}_preview.png"
-                    custom_info = json.loads(row['custom_info']) if row['custom_info'] else {}
+
+                    # 计算字重
+                    default_weight = 'Regular'
+                    for plat in ['win', 'mac']:
+                        if plat in metadata:
+                            for enc, enc_data in metadata[plat].items():
+                                for lang, fields in enc_data.items():
+                                    if 'typographic_subfamily_name' in fields:
+                                        default_weight = fields['typographic_subfamily_name']
+                                        break
+                                    elif 'font_subfamily_name' in fields:
+                                        default_weight = fields['font_subfamily_name']
+                                        break
+                                else:
+                                    continue
+                                break
+                            else:
+                                continue
+                            break
+                    final_weight = custom_info.get('custom_font_weight') or default_weight
+
                     custom_license = custom_info.get('custom_license', '')
                     final_license = custom_license if custom_license else row['commercial_license']
+
                     fonts.append({
                         'font_name': row['font_name'],
                         'display_name': display_name,
                         'commercial_license': row['commercial_license'],
+                        'final_license': final_license,
                         'total_characters': row['total_characters'],
                         'supported_languages': row.get('supported_languages', ''),
                         'preview_url': preview_path,
-                        'final_license': final_license,
-                        'custom_info': custom_info
+                        'custom_info': custom_info,
+                        'font_weight': final_weight,
                     })
                 return jsonify({
                     'fonts': fonts,
@@ -217,6 +240,7 @@ def register_routes(app):
                     'name_records': name_records,
                     'raw_metadata': metadata,
                     'custom_info': custom_info,
+                    'is_downloadable': font_file_url is not None and (is_open_source or FORCE_DOWNLOAD)
                 })
         finally:
             conn.close()
@@ -232,7 +256,8 @@ def register_routes(app):
             'custom_font_name': data.get('custom_font_name', ''),
             'custom_download_link': data.get('custom_download_link', ''),
             'custom_font_weight': data.get('custom_font_weight', ''),
-            'custom_license': data.get('custom_license', '')
+            'custom_license': data.get('custom_license', ''),
+            'official_link': data.get('official_link', '')
         }
         new_license = data.get('commercial_license', None)
 
@@ -357,6 +382,17 @@ def register_routes(app):
                     return jsonify({'error': f'处理失败: {error_msg}'}), 500
 
                 json_path = JSONS_DIR / f"{full_filename}_metadata.json"
+                if not json_path.exists():
+                    # 如果文件不存在，尝试查找替代（大小写不敏感或匹配）
+                    # 这里打印警告并尝试使用 glob 查找
+                    import glob
+                    pattern = str(JSONS_DIR / f"{full_filename}*_metadata.json")
+                    matches = glob.glob(pattern)
+                    if matches:
+                        json_path = Path(matches[0])
+                    else:
+                        return jsonify({'error': f'JSON文件不存在: {json_path}'}), 500
+
                 sync_single_font(json_path)
                 return jsonify({'message': '上传成功'})
             except Exception as e:
@@ -375,11 +411,26 @@ def register_routes(app):
                 temp_path = os.path.join(temp_dir, file.filename)
                 file.save(temp_path)
                 try:
-                    success, error_msg, new_basename = process_font(
-                        temp_path, str(FONTS_DIR), True, True, copy_font=True
+                    success, error_msg, full_filename = process_font(
+                        temp_path,
+                        str(FONTS_DIR),
+                        generate_preview_flag=True,
+                        export_json_flag=True,
+                        copy_font=True
                     )
                     if success:
-                        json_path = JSONS_DIR / f"{new_basename}_metadata.json"
+                        json_path = JSONS_DIR / f"{full_filename}_metadata.json"
+                        if not json_path.exists():
+                            # 如果文件不存在，尝试查找替代（大小写不敏感或匹配）
+                            # 这里打印警告并尝试使用 glob 查找
+                            import glob
+                            pattern = str(JSONS_DIR / f"{full_filename}*_metadata.json")
+                            matches = glob.glob(pattern)
+                            if matches:
+                                json_path = Path(matches[0])
+                            else:
+                                return jsonify({'error': f'JSON文件不存在: {json_path}'}), 500
+
                         sync_single_font(json_path)
                         results.append({'filename': file.filename, 'success': True})
                     else:

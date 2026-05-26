@@ -8,19 +8,61 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
+    <div class="fixed-header">
+        <div class="header-inner">
             <h1>📚 字体库</h1>
-            <div style="display: flex; gap: 1rem;">
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="搜索字体名称...">
-                    <button id="searchBtn">🔍 搜索</button>
-                </div>
+            <div class="search-wrapper">
+                <input type="text" id="searchInput" placeholder="搜索字体名称...">
+                <i class="fas fa-search" id="searchIcon"></i>
+            </div>
+            <div class="header-actions">
                 <button id="uploadBtn" class="upload-btn">📤 上传字体</button>
                 <button id="wordcloudBtn" class="upload-btn" style="background: #805ad5;">✨ 词云生成器</button>
+                <button id="fontPreviewBtn" class="upload-btn" style="background: #3b82f6;">🔍 字体预览器</button>
             </div>
-        </header>
-
+            <!-- 字体预览器模态框 -->
+            <div id="fontPreviewModal" class="modal">
+                <div class="modal-content" style="width: 600px;">
+                    <div class="modal-header">
+                        <h2>字体预览器</h2>
+                        <span class="close-preview">&times;</span>
+                    </div>
+                    <!-- 上传字体 -->
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">📁 上传字体文件</div>
+                            <input type="file" id="previewFontFile" accept=".ttf,.otf,.woff2" style="border: none; background: transparent; width: 100%;">
+                        </div>
+                    </div>
+                    <!-- 预览文本 -->
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">✍️ 预览文本</div>
+                            <input type="text" id="previewText" value="字体预览器 0123 abc" style="border: none; background: transparent; width: 100%;">
+                        </div>
+                    </div>
+                    <!-- 字体大小 -->
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🔠 字体大小 (<span id="fontSizeValue">32</span>px)</div>
+                            <input type="range" id="fontSizeSlider" min="12" max="72" value="32" step="1" style="width: 100%; margin-top: 0.5rem;">
+                        </div>
+                    </div>
+                    <!-- 预览区域 -->
+                    <div class="form-block">
+                        <div class="fieldset-wrapper">
+                            <div class="fieldset-label">🔍 预览效果</div>
+                            <div id="previewTextElement" style="min-height: 80px; padding: 0.5rem; background: #f9fafb; border-radius: 6px;">字体预览器 0123 abc</div>
+                        </div>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1rem;">
+                        <button class="cancel-btn" id="closePreviewModalBtn">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
         <!-- 模态框 -->
         <div id="uploadModal" class="modal">
             <div class="modal-content">
@@ -48,7 +90,6 @@
                         <div class="fieldset-wrapper">
                             <div class="fieldset-label">📁 选择多个字体文件</div>
                             <input type="file" id="batchFiles" multiple accept=".ttf,.otf,.ttc,.otc" class="file-input">
-                            <div class="helper-text">批量上传将使用随机模式生成词云</div>
                         </div>
                     </div>
                     <div class="form-actions">
@@ -90,6 +131,12 @@
                         <input type="url" id="customDownloadLink" placeholder="https://example.com/font.zip">
                     </div>
                 </div>
+                <div class="form-block">
+                    <div class="fieldset-wrapper">
+                        <div class="fieldset-label">🔗 官方链接</div>
+                        <input type="url" id="customOfficialLink" placeholder="https://example.com/font">
+                    </div>
+                </div>
                 <!-- 字重 -->
                 <div class="form-block">
                     <div class="fieldset-wrapper">
@@ -100,7 +147,7 @@
                 <!-- 许可证选择（新增） -->
                 <div class="form-block">
                     <div class="fieldset-wrapper">
-                        <div class="fieldset-label">📜 许可证 (手动覆盖)</div>
+                        <div class="fieldset-label">📜 许可证</div>
                         <select id="customLicenseSelect" class="license-select">
                             <option value="">-- 自动检测 --</option>
                             <option value="OFL">OFL</option>
