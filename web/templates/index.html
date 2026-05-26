@@ -9,7 +9,7 @@
 </head>
 <body>
     <div class="fixed-header">
-        <div class="header-inner">
+        <header>
             <h1>📚 字体库</h1>
             <div class="search-wrapper">
                 <input type="text" id="searchInput" placeholder="搜索字体名称...">
@@ -20,47 +20,7 @@
                 <button id="wordcloudBtn" class="upload-btn" style="background: #805ad5;">✨ 词云生成器</button>
                 <button id="fontPreviewBtn" class="upload-btn" style="background: #3b82f6;">🔍 字体预览器</button>
             </div>
-            <!-- 字体预览器模态框 -->
-            <div id="fontPreviewModal" class="modal">
-                <div class="modal-content" style="width: 600px;">
-                    <div class="modal-header">
-                        <h2>字体预览器</h2>
-                        <span class="close-preview">&times;</span>
-                    </div>
-                    <!-- 上传字体 -->
-                    <div class="form-block">
-                        <div class="fieldset-wrapper">
-                            <div class="fieldset-label">📁 上传字体文件</div>
-                            <input type="file" id="previewFontFile" accept=".ttf,.otf,.woff2" style="border: none; background: transparent; width: 100%;">
-                        </div>
-                    </div>
-                    <!-- 预览文本 -->
-                    <div class="form-block">
-                        <div class="fieldset-wrapper">
-                            <div class="fieldset-label">✍️ 预览文本</div>
-                            <input type="text" id="previewText" value="字体预览器 0123 abc" style="border: none; background: transparent; width: 100%;">
-                        </div>
-                    </div>
-                    <!-- 字体大小 -->
-                    <div class="form-block">
-                        <div class="fieldset-wrapper">
-                            <div class="fieldset-label">🔠 字体大小 (<span id="fontSizeValue">32</span>px)</div>
-                            <input type="range" id="fontSizeSlider" min="12" max="72" value="32" step="1" style="width: 100%; margin-top: 0.5rem;">
-                        </div>
-                    </div>
-                    <!-- 预览区域 -->
-                    <div class="form-block">
-                        <div class="fieldset-wrapper">
-                            <div class="fieldset-label">🔍 预览效果</div>
-                            <div id="previewTextElement" style="min-height: 80px; padding: 0.5rem; background: #f9fafb; border-radius: 6px;">字体预览器 0123 abc</div>
-                        </div>
-                    </div>
-                    <div class="form-actions" style="margin-top: 1rem;">
-                        <button class="cancel-btn" id="closePreviewModalBtn">关闭</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </header>
     </div>
     <div class="container">
         <!-- 模态框 -->
@@ -106,6 +66,47 @@
         </div>
 
         <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- 字体预览器模态框 -->
+    <div id="fontPreviewModal" class="modal">
+        <div class="modal-content" style="width: 600px;">
+            <div class="modal-header">
+                <h2>字体预览器</h2>
+                <span class="close-preview">&times;</span>
+            </div>
+            <!-- 上传字体 -->
+            <div class="form-block">
+                <div class="fieldset-wrapper">
+                    <div class="fieldset-label">📁 上传字体文件</div>
+                    <input type="file" id="previewFontFile" accept=".ttf,.otf,.woff2" style="border: none; background: transparent; width: 100%;">
+                </div>
+            </div>
+            <!-- 预览文本 -->
+            <div class="form-block">
+                <div class="fieldset-wrapper">
+                    <div class="fieldset-label">✍️ 预览文本</div>
+                    <input type="text" id="previewText" value="字体预览器 0123 abc" style="border: none; background: transparent; width: 100%;">
+                </div>
+            </div>
+            <!-- 字体大小 -->
+            <div class="form-block">
+                <div class="fieldset-wrapper">
+                    <div class="fieldset-label">🔠 字体大小 (<span id="fontSizeValue">32</span>px)</div>
+                    <input type="range" id="fontSizeSlider" min="12" max="72" value="32" step="1" style="width: 100%; margin-top: 0.5rem;">
+                </div>
+            </div>
+            <!-- 预览区域 -->
+            <div class="form-block">
+                <div class="fieldset-wrapper">
+                    <div class="fieldset-label">🔍 预览效果</div>
+                    <div id="previewTextElement" style="min-height: 80px; padding: 0.5rem; background: #f9fafb; border-radius: 6px;">字体预览器 0123 abc</div>
+                </div>
+            </div>
+            <div class="form-actions" style="margin-top: 1rem;">
+                <button class="cancel-btn" id="closePreviewModalBtn">关闭</button>
+            </div>
+        </div>
     </div>
 
     <!-- 编辑字体模态框 -->
